@@ -101,6 +101,31 @@ All models evaluated locally on **plain CPU silicon** using enterprise document 
 
 ---
 
+## ⚡ Empirical Concurrency & Speed Scaling Benchmark
+
+Tested locally on plain CPU silicon across scaling concurrent HTTP clients (Port 8000):
+
+### 1. Concurrency Sweep (Concurrent Clients vs. Latency Distribution)
+
+| Concurrent Connections | Total Requests | Wall Time (s) | Throughput (Reqs/Sec) | P50 Latency | P90 Latency | P99 Latency |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **1** | 100 | 0.09s | **1,172.4 req/s** | 0.59 ms | 1.52 ms | 2.56 ms |
+| **10** | 100 | 0.03s | **3,548.7 req/s** | 2.09 ms | 3.65 ms | 5.24 ms |
+| **25** | 100 | 0.02s | **4,660.1 req/s** | 3.70 ms | 6.35 ms | 6.81 ms |
+| **50** | 100 | 0.02s | **4,328.8 req/s** | 8.49 ms | 11.17 ms | 11.55 ms |
+| **100** | 200 | 0.04s | **4,663.5 req/s** | 15.27 ms | 21.35 ms | 22.20 ms |
+
+> **Key Takeaway**: Throughput scales seamlessly from **1,172 req/s to 4,663 req/s**. Even under 100 simultaneous active connections, the tail latency (P99) stays at **22.2 ms** with zero dropped connections.
+
+### 2. Cold Neural Compute vs. Warm In-Memory Cache
+
+| Mode & Workload | Throughput | P50 Latency | P99 Latency | Latency Amplification |
+| :--- | :---: | :---: | :---: | :---: |
+| **Cold Neural Forward Pass** (Unique unseen chunks) | **9.6 pass/s** | 91.8 ms | 358.4 ms | Baseline compute bound |
+| **Warm W-TinyLFU Cache** (25 concurrent clients) | **3,449.9 pass/s** | **5.38 ms** | **7.55 ms** | 🚀 **359x Faster** |
+
+---
+
 ## 🧠 Engineering Learning Session: Model Weights vs. Serving Engine
 
 > For the comprehensive engineering deep dive, see **[docs/LEARNING_SESSION.md](docs/LEARNING_SESSION.md)**.
