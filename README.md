@@ -23,12 +23,52 @@ Empirical benchmark conducted on **plain CPU silicon** using **180 real enterpri
 
 ---
 
+## 📐 Architecture Overview
+
+> For the comprehensive specification, see **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+
+```
+Client (/v1/embeddings, /embed)
+       │
+       ▼
+┌──────────────────────────────────────────────┐
+│  Axum 0.7 REST Router                        │
+└──────────────────────┬───────────────────────┘
+                       │
+       ┌───────────────┴───────────────┐
+       ▼                               ▼
+┌──────────────────────────┐    ┌──────────────────────────┐
+│ L1 W-TinyLFU Cache (Moka)│    │ Continuous Dynamic Queue │
+└──────────────┬───────────┘    └──────────────┬───────────┘
+       │ [Hit: <0.1 µs]                        │ [Miss]
+       │                                       ▼
+       │                        ┌──────────────────────────┐
+       │                        │ Ragged cu_seqlens Pack   │
+       │                        │ (Zero-padding compute=0) │
+       │                        └──────────────┬───────────┘
+       │                                       │
+       │                                       ▼
+       │                        ┌──────────────────────────┐
+       │                        │ Native Transformer/ONNX  │
+       │                        └──────────────┬───────────┘
+       │                                       │
+       │                                       ▼
+       │                        ┌──────────────────────────┐
+       │                        │ Matryoshka MRL Slicing   │
+       │                        └──────────────┬───────────┘
+       │                                       │
+       └───────────────────────┬───────────────┘
+                               ▼
+            tokio::sync::oneshot Response
+```
+
 ## 🚀 Key Architectural Innovations
 
 ### 1. Zero-Padding Ragged Tensor Packing (`cu_seqlens`)
 Traditional embedding servers pad sequences in a batch to the maximum token length:
 $$\text{Wasted FLOPs} = \sum_{i=1}^B (L_{\max} - L_i) \times \text{Hidden Dim} \times 24 \text{ Layers}$$
 Omni-Embeddings concatenates all input sequences into a contiguous 1D token stream tracked by cumulative sequence offsets (`cu_seqlens`), completely eliminating zero-padding computation on plain CPU.
+Contiguous memory alignment also maximizes CPU L1/L2 data cache hit rates during SIMD dot products.
 
 ### 2. High-Concurrency W-TinyLFU Vector Cache (`moka`)
 Repeated queries, document re-indexes, and frequent RAG lookups bypass the transformer forward pass entirely. Powered by lock-free concurrent TinyLFU frequency filters:
