@@ -12,6 +12,7 @@ Empirical benchmark conducted on **plain CPU silicon** using **180 real enterpri
 
 | Metric | Hugging Face Gold TEI (v1.6+) | Omni-Embeddings (Neural Cold) | Omni-Embeddings (Neural + Cache) | Omni Advantage |
 | :--- | :---: | :---: | :---: | :---: |
+| **Model Architecture** | TEI runs full 24-layer Gemma 2 transformer | 740M Multimodal Transformer | Continuous Batching Engine | Zero-Padding Ragged + Cache |
 | **Throughput (passages/sec)** | 9.4 pass/sec | 11.3 pass/sec | **1,799.5 pass/sec** | **🚀 191x Faster** |
 | **P50 Latency** | 1,527.2 ms | 1,320.1 ms | **8.7 ms** | **⚡ 175x Lower** |
 | **Total Test Duration (180 chunks)** | 19.21 s | 15.93 s | **0.10 s** | **99.5% Reduction** |
